@@ -8,8 +8,12 @@ import dk.sdu.mdsd.quickMath.QuickMath
 import dk.sdu.mdsd.quickMath.Compute
 import dk.sdu.mdsd.quickMath.Plot
 import dk.sdu.mdsd.quickMath.Assignment
+import java.util.HashMap
+import java.beans.Expression
 
 class QuickMathGenerator extends AbstractGenerator {
+	
+	private HashMap variables = new HashMap<String,Expression> 
 	
 	override doGenerate(Resource input, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		val result = input.allContents.filter(QuickMath).next
@@ -32,6 +36,7 @@ class QuickMathGenerator extends AbstractGenerator {
 	}
 	
 	def process(Assignment assign){
+		variables.put(assign.na)
 		
 	}
 }

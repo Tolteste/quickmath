@@ -11,7 +11,7 @@ Assignment:
 	name=(FunctionName | VariableName) '=' exp=Exp
 ;
 
-FunctionName:
+FunctionName returns Name:
 	name=ID '(' (variables+=(VariableAssignment | VariableName)(',' variables+=(VariableAssignment | VariableName))*)? ')'
 ;
 
@@ -19,7 +19,7 @@ VariableAssignment:
 	name=ID '=' value=Number
 ;
 
-VariableName:
+VariableName returns Name:
 	name=ID
 ;
 
