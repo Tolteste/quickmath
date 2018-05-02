@@ -1,0 +1,74 @@
+grammar dk.sdu.mdsd.QuickMath with org.eclipse.xtext.common.Terminals
+
+generate quickMath "http://www.sdu.dk/mdsd/QuickMath"
+
+QuickMath:
+	'sheet' name=ID
+	quickMath+=(Assignment | Plot | Compute)*	
+;
+	
+Assignment:
+	name=(FunctionName | VariableName) '=' exp=Exp
+;
+
+FunctionName:
+	name=ID '(' (variables+=(VariableAssignment | VariableName)(',' variables+=(VariableAssignment | VariableName))*)? ')'
+;
+
+VariableAssignment:
+	name=ID '=' value=Number
+;
+
+VariableName:
+	name=ID
+;
+
+Exp returns Expression:
+	Factor (('+' {Plus.left=current} | '-' {Minus.left=current}) right=Factor)*
+;
+
+Factor returns Expression:
+	Primary (('*' {Mult.left=current} | '/' {Div.left=current}) right=Primary)*	
+;
+
+Primary returns Expression:
+	Number | Parenthesis | VariableUse | Function
+;
+
+Function returns Expression:
+	({Sin} 'sin' | {Cos} 'cos' | {Tg} 'tg') '(' exp=Exp ')' | 
+ 	({Sin} 'sin' | {Cos} 'cos' | {Tg} 'tg') (exp=VariableName | exp=Number) |
+ UserFunction
+;
+
+UserFunction:
+	{Fun} name=ID '(' (parameters+=Exp (',' variables+=Exp)*)? ')'
+;
+
+VariableUse returns Expression:
+	{Var} id=ID
+;
+
+Parenthesis returns Expression:
+	'(' Exp ')'
+;
+
+Number returns Expression:
+	{Num} (minus='~')? left=INT('.' right=INT)?
+;
+
+Plot:
+	'plot' fun=FunctionName ('with' varRange+=Range ('and' varRange+=Range)*)?
+;
+
+Range:
+	var=ID 'in' (range=Interval 'step' step=Number | range=Exp)
+;
+
+Interval:
+	'[' lowerBound=Exp ',' upperBound=Exp ']'
+;
+
+Compute:
+	'compute' (fun=FunctionName ('with' varRange+=Range ('and' varRange+=Range)*)?)
+;
