@@ -12,7 +12,7 @@ Assignment:
 ;
 
 FunctionName returns Name:
-	name=ID '(' (variables+=(VariableAssignment | VariableName)(',' variables+=(VariableAssignment | VariableName))*)? ')'
+	name=ID '(' (variables+=VariableName(',' variables+=VariableName)*)? ')'
 ;
 
 VariableAssignment:
@@ -37,11 +37,11 @@ Primary returns Expression:
 
 Function returns Expression:
 	({Sin} 'sin' | {Cos} 'cos' | {Tg} 'tg') '(' exp=Exp ')' | 
- 	({Sin} 'sin' | {Cos} 'cos' | {Tg} 'tg') (exp=VariableName | exp=Number) |
+ 	({Sin} 'sin' | {Cos} 'cos' | {Tg} 'tg') (exp=VariableUse | exp=Number) |
  UserFunction
 ;
 
-UserFunction:
+UserFunction returns Expression:
 	{Fun} name=ID '(' (parameters+=Exp (',' variables+=Exp)*)? ')'
 ;
 
@@ -62,7 +62,7 @@ Plot:
 ;
 
 Range:
-	var=ID 'in' (range=Interval 'step' step=Number | range=Exp)
+	var=ID 'in' ((range=Interval 'step' step=Number) | range=Exp)
 ;
 
 Interval:
