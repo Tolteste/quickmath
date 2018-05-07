@@ -25,6 +25,7 @@ import dk.sdu.mdsd.quickMath.Interval
 
 class QuickMathGenerator extends AbstractGenerator {
 	
+	// Global environment for specific sheet
 	private Map<String,FunctionScope> variables = new HashMap<String,FunctionScope> 
 	
 	override doGenerate(Resource input, IFileSystemAccess2 fsa, IGeneratorContext context) {
@@ -44,7 +45,9 @@ class QuickMathGenerator extends AbstractGenerator {
 		val par = new HashMap<String,Double>()
 		val parNames = funScope.parameters
 		// iterating through all supplied parameters
-		for(range : cmpt.varRange){
+		for(rng : cmpt.varRange){
+			// getting to actual range values encapsulated in Range object
+			val range = rng.range
 			switch range {
 				Expression: 
 				for(parName : parNames) {
@@ -81,7 +84,8 @@ class QuickMathGenerator extends AbstractGenerator {
 			Sin: Math.sin(exp.exp.computeExp(par))
 			Num: exp.convertToDouble()
 			Var: {
-				// extracting value for local parameter
+				// if we have variable in supplied parameters get the value
+				// otherwise try to extract variable from global environment
 				val local = par.get(exp.id)
 				if( local !== null){
 					return local
