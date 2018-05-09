@@ -22,6 +22,8 @@ import java.util.Map
 import java.util.List
 import java.util.ArrayList
 import dk.sdu.mdsd.quickMath.Interval
+import org.eclipse.emf.common.util.EList
+import dk.sdu.mdsd.quickMath.Range
 
 class QuickMathGenerator extends AbstractGenerator {
 	
@@ -40,25 +42,50 @@ class QuickMathGenerator extends AbstractGenerator {
 		}
 	}
 	
-	def process(Compute cmpt){
+	def process(Compute cmpt) {
 		val funScope = variables.get(cmpt.fun.name)
-		val par = new HashMap<String,Double>()
+		val par = new HashMap<String, Double>()
 		val parNames = funScope.parameters
-		// iterating through all supplied parameters
-		for(rng : cmpt.varRange){
-			// getting to actual range values encapsulated in Range object
+		// compute number of steps in supplied intervals 
+		// /!!! NOT CHECKING IF INTERVALS HAS SAME AMMOUNT OF STEPS
+		val steps = computeLocalSteps(cmpt.varRange)
+		var i = 0
+
+		for (i = 0; i < steps; i++) {
+			// iterating through all supplied parameters
+			var k = 0
+			for (rng : cmpt.varRange) {
+				// getting to actual range values encapsulated in Range object
+				val range = rng.range
+				switch range {
+					Expression:
+						if(!par.containsKey(parNames.get(k))){
+							par.put(parNames.get(k), range.computeExp(null))
+						}	
+					Interval: {
+						par.put(parNames.get(k), range.lowerBound.computeExp(null) + (i+1) * rng.step.computeExp(null))
+					}
+				}
+				k++
+			}
+			println(funScope.exp.computeExp(par))
+		}
+	}
+	
+	def computeLocalSteps(EList<Range> list) {
+		for (rng : list) {
 			val range = rng.range
 			switch range {
-				Expression: 
-				for(parName : parNames) {
-					par.put(parName, range.computeExp(null))
-					}
-				Interval: 
-				//TODO: implement intervals
-				return
+				Interval: {
+					val lower = range.lowerBound.computeExp(null)
+					val upper = range.upperBound.computeExp(null)
+					val stepSize = rng.step.computeExp(null)
+
+					return (upper - lower) / stepSize
+				}
 			}
 		}
-		println(funScope.exp.computeExp(par))
+		return 1
 	}	
 	
 	def process(Plot plot){
