@@ -1,29 +1,33 @@
 package dk.sdu.mdsd.generator
 
-import org.eclipse.xtext.generator.AbstractGenerator
-import org.eclipse.emf.ecore.resource.Resource
-import org.eclipse.xtext.generator.IFileSystemAccess2
-import org.eclipse.xtext.generator.IGeneratorContext
-import dk.sdu.mdsd.quickMath.QuickMath
-import dk.sdu.mdsd.quickMath.Compute
-import dk.sdu.mdsd.quickMath.Plot
 import dk.sdu.mdsd.quickMath.Assignment
-import java.util.HashMap
-import dk.sdu.mdsd.quickMath.Expression
-import dk.sdu.mdsd.quickMath.Num
+import dk.sdu.mdsd.quickMath.Compute
 import dk.sdu.mdsd.quickMath.Div
-import dk.sdu.mdsd.quickMath.Mult
-import dk.sdu.mdsd.quickMath.Plus
+import dk.sdu.mdsd.quickMath.Expression
+import dk.sdu.mdsd.quickMath.Fun
+import dk.sdu.mdsd.quickMath.Interval
 import dk.sdu.mdsd.quickMath.Minus
+import dk.sdu.mdsd.quickMath.Mult
+import dk.sdu.mdsd.quickMath.Name
+import dk.sdu.mdsd.quickMath.Num
+import dk.sdu.mdsd.quickMath.Plot
+import dk.sdu.mdsd.quickMath.Plus
+import dk.sdu.mdsd.quickMath.QuickMath
+import dk.sdu.mdsd.quickMath.Range
 import dk.sdu.mdsd.quickMath.Sin
 import dk.sdu.mdsd.quickMath.Var
-import dk.sdu.mdsd.quickMath.Fun
-import java.util.Map
-import java.util.List
 import java.util.ArrayList
-import dk.sdu.mdsd.quickMath.Interval
+import java.util.HashMap
+import java.util.Map
 import org.eclipse.emf.common.util.EList
-import dk.sdu.mdsd.quickMath.Range
+import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.xtext.generator.AbstractGenerator
+import org.eclipse.xtext.generator.IFileSystemAccess2
+import org.eclipse.xtext.generator.IGeneratorContext
+import org.knowm.xchart.BitmapEncoder
+import org.knowm.xchart.BitmapEncoder.BitmapFormat
+import org.knowm.xchart.QuickChart
+import org.knowm.xchart.SwingWrapper
 
 class QuickMathGenerator extends AbstractGenerator {
 	
@@ -43,53 +47,27 @@ class QuickMathGenerator extends AbstractGenerator {
 	}
 	
 	def process(Compute cmpt) {
-		val funScope = variables.get(cmpt.fun.name)
-		val par = new HashMap<String, Double>()
-		val parNames = funScope.parameters
-		// compute number of steps in supplied intervals 
-		// /!!! NOT CHECKING IF INTERVALS HAS SAME AMMOUNT OF STEPS
-		val steps = computeLocalSteps(cmpt.varRange)
-		var i = 0
-
-		for (i = 0; i < steps; i++) {
-			// iterating through all supplied parameters
-			var k = 0
-			for (rng : cmpt.varRange) {
-				// getting to actual range values encapsulated in Range object
-				val range = rng.range
-				switch range {
-					Expression:
-						if(!par.containsKey(parNames.get(k))){
-							par.put(parNames.get(k), range.computeExp(null))
-						}	
-					Interval: {
-						par.put(parNames.get(k), range.lowerBound.computeExp(null) + (i+1) * rng.step.computeExp(null))
-					}
-				}
-				k++
-			}
-			println(funScope.exp.computeExp(par))
-		}
+		val values = computeFunction(cmpt.fun.name,cmpt.varRange)
+		printValues(cmpt.fun.variables,values)
 	}
 	
-	def computeLocalSteps(EList<Range> list) {
-		for (rng : list) {
-			val range = rng.range
-			switch range {
-				Interval: {
-					val lower = range.lowerBound.computeExp(null)
-					val upper = range.upperBound.computeExp(null)
-					val stepSize = rng.step.computeExp(null)
-
-					return (upper - lower) / stepSize
-				}
+	def process(Plot plot) {
+		val values = computeFunction(plot.fun.name,plot.varRange)
+		if(plot.varRange.size == 1){
+			val double[] xData = newDoubleArrayOfSize(values.size)
+			val double[] yData = newDoubleArrayOfSize(values.size)
+			var i = 0
+			for (v : values) {
+				xData.set(i,v.get(0).doubleValue)
+				yData.set(i,v.get(1).doubleValue)
+				i++
 			}
+			val chart = QuickChart.getChart("Sample Chart", "X", "Y", "y(x)", xData, yData)
+			// Show it
+			new SwingWrapper(chart).displayChart()
+			// Save it
+			BitmapEncoder.saveBitmap(chart, "./Sample_Chart", BitmapFormat.PNG)
 		}
-		return 1
-	}	
-	
-	def process(Plot plot){
-		
 	}
 	
 	def process(Assignment assign){
@@ -101,6 +79,57 @@ class QuickMathGenerator extends AbstractGenerator {
 		variables.put(assign.name.name,scope)
 		
 	}
+	
+	def Double[][] computeFunction(String funName, EList<Range> varRange ){
+		val funScope = variables.get(funName)
+		val par = new HashMap<String, Double>()
+		val parNames = funScope.parameters
+		// compute number of steps in supplied intervals 
+		// /!!! NOT CHECKING IF INTERVALS HAS SAME AMMOUNT OF STEPS
+		val steps = computeLocalSteps(varRange)
+		var i = 0
+		val result = newArrayList
+
+		for (i = 0; i < steps; i++) {
+			// iterating through all supplied parameters
+			val stepResult = newArrayList
+			var k = 0
+			for (rng : varRange) {
+				// getting to actual range values encapsulated in Range object
+				val range = rng.range
+				switch range {
+					Expression:
+						if(!par.containsKey(parNames.get(k))){
+							par.put(parNames.get(k), range.computeExp(null))
+						}	
+					Interval: {
+						par.put(parNames.get(k), range.lowerBound.computeExp(null) + i * rng.step.computeExp(null))
+					}
+				}
+				stepResult.add(par.get(parNames.get(k)))
+				k++
+			}
+			stepResult.add(funScope.exp.computeExp(par))
+			result.add(stepResult)
+		}
+		return result
+	}
+	
+	def int computeLocalSteps(EList<Range> list) {
+		for (rng : list) {
+			val range = rng.range
+			switch range {
+				Interval: {
+					val lower = range.lowerBound.computeExp(null)
+					val upper = range.upperBound.computeExp(null)
+					val stepSize = rng.step.computeExp(null)
+
+					return ((upper - lower) / stepSize).intValue
+				}
+			}
+		}
+		return 1
+	}	
 	
 	def double computeExp(Expression exp,HashMap<String,Double> par) {
 		switch exp {
@@ -137,6 +166,19 @@ class QuickMathGenerator extends AbstractGenerator {
 				}
 			}
 			
+		}
+	}
+	
+	def printValues(EList<Name> names,Double[][] values){
+		for(name : names){
+			print(name.name + ":		")
+		}		
+		print("result:\n")
+		for(var i=0;i<values.length;i++){
+			for(var k=0;k<values.get(i).length;k++){
+				print(values.get(i).get(k) + "		")
+			}
+			print("\n")
 		}
 	}
 	
