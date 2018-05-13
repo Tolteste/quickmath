@@ -28,14 +28,17 @@ import org.knowm.xchart.BitmapEncoder
 import org.knowm.xchart.BitmapEncoder.BitmapFormat
 import org.knowm.xchart.QuickChart
 import org.knowm.xchart.SwingWrapper
+import javax.swing.WindowConstants
 
 class QuickMathGenerator extends AbstractGenerator {
 	
 	// Global environment for specific sheet
 	private Map<String,FunctionScope> variables = new HashMap<String,FunctionScope> 
+	private String name
 	
 	override doGenerate(Resource input, IFileSystemAccess2 fsa, IGeneratorContext context) {
 		val result = input.allContents.filter(QuickMath).next
+		name = result.name
 		for (command : result.quickMath) {
 			switch command {
 				Compute: command.process
@@ -62,11 +65,14 @@ class QuickMathGenerator extends AbstractGenerator {
 				yData.set(i,v.get(1).doubleValue)
 				i++
 			}
-			val chart = QuickChart.getChart("Sample Chart", "X", "Y", "y(x)", xData, yData)
+			val xname = plot.varRange.get(0).^var
+			val funName = plot.fun.name + "(" + xname + ")"
+			
+			val chart = QuickChart.getChart(name, xname , "Y", funName , xData, yData)
 			// Show it
-			new SwingWrapper(chart).displayChart()
+			new SwingWrapper(chart).displayChart().setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
 			// Save it
-			BitmapEncoder.saveBitmap(chart, "./Sample_Chart", BitmapFormat.PNG)
+			BitmapEncoder.saveBitmap(chart, "./" + name, BitmapFormat.PNG)
 		}
 	}
 	
