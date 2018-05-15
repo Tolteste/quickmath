@@ -29,6 +29,7 @@ import org.knowm.xchart.BitmapEncoder.BitmapFormat
 import org.knowm.xchart.QuickChart
 import org.knowm.xchart.SwingWrapper
 import javax.swing.WindowConstants
+import dk.sdu.mdsd.quickMath.Cos
 
 class QuickMathGenerator extends AbstractGenerator {
 	
@@ -144,6 +145,7 @@ class QuickMathGenerator extends AbstractGenerator {
 			Mult: exp.left.computeExp(par)*exp.right.computeExp(par)
 			Div: exp.left.computeExp(par)/exp.right.computeExp(par)
 			Sin: Math.sin(exp.exp.computeExp(par))
+			Cos: Math.cos(exp.exp.computeExp(par))
 			Num: exp.convertToDouble()
 			Var: {
 				// if we have variable in supplied parameters get the value
